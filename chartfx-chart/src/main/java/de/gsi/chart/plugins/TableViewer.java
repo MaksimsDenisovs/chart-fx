@@ -305,7 +305,7 @@ public class TableViewer extends ChartPlugin {
                 lastColumnUpdate = now;
                 refresh();
             } else {
-                if (columnUpdateScheduled.compareAndExchange(false, true))
+                if (columnUpdateScheduled.compareAndSet(false, true))
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
@@ -529,7 +529,6 @@ public class TableViewer extends ChartPlugin {
             public DataSetTableColumn(final ColumnType type) {
                 super("");
                 this.setSortable(false);
-                this.setReorderable(false);
                 this.ds = null;
                 this.type = type;
                 this.setCellValueFactory(dataSetsRowFeature -> new ReadOnlyObjectWrapper<>(dataSetsRowFeature.getValue().getValue(ds, type)));
@@ -658,7 +657,6 @@ public class TableViewer extends ChartPlugin {
             public DataSetTableColumns() {
                 super("");
                 this.setSortable(false);
-                this.setReorderable(false);
                 this.dataSet = null;
                 for (ColumnType type : ColumnType.values()) {
                     this.getColumns().add(new DataSetTableColumn(type));
@@ -691,7 +689,6 @@ public class TableViewer extends ChartPlugin {
             public RowIndexHeaderTableColumn() {
                 super();
                 this.setSortable(false);
-                this.setReorderable(false);
                 setCellValueFactory(dataSetsRow -> {
                     return new ReadOnlyObjectWrapper<>(dataSetsRow.getValue().getRow());
                 });

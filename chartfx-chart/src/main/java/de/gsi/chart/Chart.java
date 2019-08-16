@@ -9,6 +9,11 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+
+import com.sun.javafx.charts.ChartLayoutAnimator;
+import com.sun.javafx.css.converters.BooleanConverter;
+import com.sun.javafx.css.converters.EnumConverter;
+
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -33,8 +38,6 @@ import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
-import javafx.css.converter.BooleanConverter;
-import javafx.css.converter.EnumConverter;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -70,7 +73,6 @@ import de.gsi.chart.legend.spi.DefaultLegend;
 import de.gsi.chart.plugins.ChartPlugin;
 import de.gsi.chart.renderer.Renderer;
 import de.gsi.chart.renderer.spi.LabelledMarkerRenderer;
-import de.gsi.chart.ui.ChartLayoutAnimator;
 import de.gsi.chart.ui.HiddenSidesPane;
 import de.gsi.chart.ui.ResizableCanvas;
 import de.gsi.chart.ui.ToolBarFlowPane;
