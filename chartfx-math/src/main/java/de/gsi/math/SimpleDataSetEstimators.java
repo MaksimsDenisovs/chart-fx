@@ -1,4 +1,4 @@
-package de.gsi.chart.plugins.measurements.utils;
+package de.gsi.math;
 
 import de.gsi.dataset.DataSet;
 
@@ -221,6 +221,12 @@ public final class SimpleDataSetEstimators { // NOPMD name is as is (ie. no Help
         return SimpleDataSetEstimators.computeFWHM(data, data.length, locationMaximum - indexMin);
     }
 
+    /**
+     * @param dataSet
+     * @param indexMin the starting index
+     * @param indexMax the end index (switching indices reverses sign of result)
+     * @return the Integral of the DataSet according to the trapezoidal rule
+     */
     public static double getIntegral(final DataSet dataSet, final int indexMin, final int indexMax) {
         if (Math.abs(indexMax - indexMin) < 0) {
             return Double.NaN;
@@ -327,6 +333,15 @@ public final class SimpleDataSetEstimators { // NOPMD name is as is (ie. no Help
         return val;
     }
 
+    /**
+     * Returns the range of the y Data of the dataSet between the given indices.
+     * This equals the maximum value in the range minus the minimum value.
+     * 
+     * @param dataSet
+     * @param indexMin
+     * @param indexMax
+     * @return the range of yData between the given indices
+     */
     public static double getRange(final DataSet dataSet, final int indexMin, final int indexMax) {
         double valMin = Double.MAX_VALUE;
         double valMax = -1.0 * Double.MAX_VALUE;
@@ -348,6 +363,12 @@ public final class SimpleDataSetEstimators { // NOPMD name is as is (ie. no Help
         return SimpleDataSetEstimators.rootMeanSquare(data, data.length);
     }
 
+    /**
+     * @param dataSet
+     * @param indexMin
+     * @param indexMax
+     * @return the 20% to 80% rise time of the signal
+     */
     public static double getSimpleRiseTime(final DataSet dataSet, final int indexMin, final int indexMax) {
         return getSimpleRiseTime2080(dataSet, indexMin, indexMax);
     }
@@ -411,7 +432,7 @@ public final class SimpleDataSetEstimators { // NOPMD name is as is (ie. no Help
     }
 
     public static double getSimpleRiseTime2080(final DataSet dataSet, final int indexMin, final int indexMax) {
-        return getSimpleRiseTime(dataSet, indexMin, indexMax, 0.2, 0.9);
+        return getSimpleRiseTime(dataSet, indexMin, indexMax, 0.2, 0.8);
     }
 
     public static double getTransmission(final DataSet dataSet, final int indexMin, final int indexMax,
