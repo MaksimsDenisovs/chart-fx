@@ -44,6 +44,7 @@ public class ErrorDataSetRendererSample extends Application {
     private final DoubleDataSet dataSetNoError = new DoubleDataSet("TestDataNoErrors",
             ErrorDataSetRendererSample.N_SAMPLES);
     private Timer timer;
+    private XYChart chart;
 
     private HBox getHeaderBar(final Scene scene) {
         final Button newDataSet = new Button("new DataSet");
@@ -61,12 +62,17 @@ public class ErrorDataSetRendererSample extends Application {
             }
         });
 
+        final Button clearPlugins = new Button("clear plugins");
+        clearPlugins.setOnAction(evt -> {
+            chart.getPlugins().clear();
+        });
+
         // H-Spacer
         final Region spacer = new Region();
         spacer.setMinWidth(Region.USE_PREF_SIZE);
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        return new HBox(newDataSet, startTimer, spacer, new ProfilerInfoBox(scene, DEBUG_UPDATE_RATE));
+        return new HBox(newDataSet, startTimer, clearPlugins, spacer, new ProfilerInfoBox(scene, DEBUG_UPDATE_RATE));
     }
 
     private TimerTask getTimerTask() {
@@ -94,7 +100,7 @@ public class ErrorDataSetRendererSample extends Application {
 
         final BorderPane root = new BorderPane();
         final Scene scene = new Scene(root, 800, 600);
-        final XYChart chart = new XYChart(new DefaultNumericAxis(), new DefaultNumericAxis());
+        chart = new XYChart(new DefaultNumericAxis(), new DefaultNumericAxis());
         chart.legendVisibleProperty().set(true);
         chart.getXAxis().setName("time");
         chart.getXAxis().setUnit("s");
