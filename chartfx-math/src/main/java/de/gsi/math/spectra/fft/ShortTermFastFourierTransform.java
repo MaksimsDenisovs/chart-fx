@@ -79,7 +79,7 @@ public class ShortTermFastFourierTransform {
                 }
             }
             fastFourierTrafo.complexForward(raw);
-            current = SpectrumTools.computeMagnitudeSpectrum_dB(raw, true);
+            current = SpectrumTools.computeMagnitudeSpectrum(raw, true);
             for (int j = 0; j < nQuantf; j++) {
                 amplitudeMin = Math.min(amplitudeMin, current[j]);
                 amplitudeMax = Math.max(amplitudeMax, current[j]);
@@ -103,7 +103,7 @@ public class ShortTermFastFourierTransform {
         final String freqUnit = timeUnit.equals("s") ? "Hz" : "1/" + timeUnit;
         result.getAxisDescription(DIM_Y).set("Frequency", freqUnit, frequencyAxis[0],
                 frequencyAxis[frequencyAxis.length - 1]);
-        result.getAxisDescription(DIM_Z).set("Magnitude", "dB(" + input.getAxisDescription(DIM_Y).getUnit() + ")",
+        result.getAxisDescription(DIM_Z).set("Magnitude", input.getAxisDescription(DIM_Y).getUnit(),
                 amplitudeMin, amplitudeMax);
         LOGGER.atInfo().addArgument(result).log("result of complex sfft: {}");
         return result;
@@ -193,7 +193,7 @@ public class ShortTermFastFourierTransform {
                 }
             }
             fastFourierTrafo.realForward(raw);
-            current = SpectrumTools.computeMagnitudeSpectrum_dB(raw, true);
+            current = SpectrumTools.computeMagnitudeSpectrum(raw, true);
             for (int j = 0; j < nQuantf / 2; j++) {
                 amplitudeMin = Math.min(amplitudeMin, current[j]);
                 amplitudeMax = Math.max(amplitudeMax, current[j]);
@@ -213,7 +213,7 @@ public class ShortTermFastFourierTransform {
         final String freqUnit = timeUnit.equals("s") ? "Hz" : "1/" + timeUnit;
         result.getAxisDescription(DIM_Y).set("Frequency", freqUnit, frequencyAxis[0],
                 frequencyAxis[frequencyAxis.length - 1]);
-        result.getAxisDescription(DIM_Z).set("Magnitude", "dB(" + input.getAxisDescription(DIM_Y).getUnit() + ")",
+        result.getAxisDescription(DIM_Z).set("Magnitude", input.getAxisDescription(DIM_Y).getUnit(),
                 amplitudeMin, amplitudeMax);
         LOGGER.atInfo().addArgument(result).log("result of real sfft: {}");
         return result;
