@@ -1,5 +1,8 @@
 package de.gsi.math;
 
+import static de.gsi.dataset.DataSet.DIM_X;
+import static de.gsi.dataset.DataSet.DIM_Y;
+
 import de.gsi.dataset.DataSet;
 
 /**
@@ -11,6 +14,48 @@ public final class SimpleDataSetEstimators { // NOPMD name is as is (ie. no Help
 
     private SimpleDataSetEstimators() {
         // this is a static class
+    }
+
+    /**
+     * Computes the centre of mass in a given index range.
+     * 
+     * @param dataSet
+     * @param minIndex
+     * @param maxIndex
+     * @return centre of mass
+     */
+    public static double computeCentreOfMass(DataSet dataSet, int minIndex, int maxIndex) {
+        double com = 0;
+        double mass = 0;
+        for (int i = minIndex; i < maxIndex; i++) {
+            double freq = dataSet.get(DIM_X, i);
+            double val = dataSet.get(DIM_Y, i);
+            com += freq * val;
+            mass += val;
+        }
+        return com / mass;
+    }
+
+    /**
+     * Computes the centre of mass in a given x range.
+     * 
+     * @param dataSet
+     * @param min
+     * @param max
+     * @return centre of mass
+     */
+    public static double computeCentreOfMass(DataSet dataSet, double min, double max) {
+        return computeCentreOfMass(dataSet, dataSet.getIndex(DIM_X, min), dataSet.getIndex(DIM_X, max));
+    }
+
+    /**
+     * Compute centre of mass over full DataSet
+     * 
+     * @param dataSet
+     * @return centre of mass
+     */
+    public static double computeCentreOfMass(DataSet dataSet) {
+        return computeCentreOfMass(dataSet, 0, dataSet.getDataCount(DIM_X));
     }
 
     /**
