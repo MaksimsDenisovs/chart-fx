@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.Observable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -111,7 +111,11 @@ public class EditAxis extends ChartPlugin {
         setAnimated(animated);
 
         chartProperty().addListener((obs, oldChart, newChart) -> {
+            if (oldChart == newChart) {
+                return;
+            }
             if (oldChart != null) {
+                oldChart.getAxes().removeListener(this::axesChangedHandler);
                 removeMouseEventHandlers(oldChart);
             }
             if (newChart != null) {
@@ -131,6 +135,12 @@ public class EditAxis extends ChartPlugin {
 
     private void addMouseEventHandlers(final Chart newChart) {
         newChart.getAxes().forEach(axis -> popUpList.add(new MyPopOver(axis, axis.getSide().isHorizontal())));
+        newChart.getAxes().addListener(this::axesChangedHandler);
+    }
+
+    private void axesChangedHandler(@SuppressWarnings("unused") Observable observable) { // parameter for EventHandler api
+        removeMouseEventHandlers(getChart());
+        addMouseEventHandlers(getChart());
     }
 
     /**
@@ -183,8 +193,8 @@ public class EditAxis extends ChartPlugin {
     private void removeMouseEventHandlers(final Chart oldChart) {
         popUpList.forEach(popOver -> {
             popOver.deregisterMouseEvents();
-            popUpList.remove(popOver);
         });
+        popUpList.clear();
     }
 
     /**
