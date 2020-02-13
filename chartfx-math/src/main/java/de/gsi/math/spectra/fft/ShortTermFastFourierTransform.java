@@ -92,10 +92,10 @@ public class ShortTermFastFourierTransform {
         }
 
         // initialize result dataset
-        DoubleDataSet3D result = new DoubleDataSet3D("SFFT(" + input.getName() + ")", timeAxis, frequencyAxis,
+        DoubleDataSet3D result = new DoubleDataSet3D("STFT(" + input.getName() + ")", timeAxis, frequencyAxis,
                 amplitudeData);
-        result.getMetaInfo().put("SFFT-nFFT", Integer.toString(nQuantf));
-        result.getMetaInfo().put("SFFT-nT", Integer.toString(nQuantt));
+        result.getMetaInfo().put("STFT-nFFT", Integer.toString(nQuantf));
+        result.getMetaInfo().put("STFT-nT", Integer.toString(nQuantt));
 
         // Set Axis Labels and Units
         final String timeUnit = input.getAxisDescription(DIM_X).getUnit();
@@ -103,9 +103,9 @@ public class ShortTermFastFourierTransform {
         final String freqUnit = timeUnit.equals("s") ? "Hz" : "1/" + timeUnit;
         result.getAxisDescription(DIM_Y).set("Frequency", freqUnit, frequencyAxis[0],
                 frequencyAxis[frequencyAxis.length - 1]);
-        result.getAxisDescription(DIM_Z).set("Magnitude", input.getAxisDescription(DIM_Y).getUnit(),
-                amplitudeMin, amplitudeMax);
-        LOGGER.atInfo().addArgument(result).log("result of complex sfft: {}");
+        result.getAxisDescription(DIM_Z).set("Magnitude", input.getAxisDescription(DIM_Y).getUnit(), amplitudeMin,
+                amplitudeMax);
+        LOGGER.atInfo().addArgument(result).log("result of complex STFT: {}");
         return result;
     }
 
@@ -164,7 +164,6 @@ public class ShortTermFastFourierTransform {
         double amplitudeMin = Double.POSITIVE_INFINITY;
         double amplitudeMax = Double.NEGATIVE_INFINITY;
 
-
         // calculate scalogram
         final DoubleFFT_1D fastFourierTrafo = new DoubleFFT_1D(nQuantf);
         double[] raw = new double[nQuantf];
@@ -202,20 +201,23 @@ public class ShortTermFastFourierTransform {
         }
 
         // initialize result dataset
-        DoubleDataSet3D result = new DoubleDataSet3D("SFFT(" + input.getName() + ")", timeAxis, frequencyAxis,
+        DoubleDataSet3D result = new DoubleDataSet3D("STFT(" + input.getName() + ")", timeAxis, frequencyAxis,
                 amplitudeData);
-        result.getMetaInfo().put("SFFT-nFFT", Integer.toString(nQuantf));
-        result.getMetaInfo().put("SFFT-nT", Integer.toString(nQuantt));
+        result.getMetaInfo().put("STFT-nFFT", Integer.toString(nQuantf));
+        result.getMetaInfo().put("STFT-nT", Integer.toString(nQuantt));
 
         // Set Axis Labels and Units
+        final String timeName = input.getAxisDescription(DIM_X).getName();
         final String timeUnit = input.getAxisDescription(DIM_X).getUnit();
-        result.getAxisDescription(DIM_X).set("Time", timeUnit, timeAxis[0], timeAxis[timeAxis.length - 1]);
+        result.getAxisDescription(DIM_X).set(timeName, timeUnit, timeAxis[0],
+                timeAxis[timeAxis.length - 1]);
+        final String freqName = timeName.toLowerCase().equals("time") ? "Frequency" : "1/" + timeName;
         final String freqUnit = timeUnit.equals("s") ? "Hz" : "1/" + timeUnit;
-        result.getAxisDescription(DIM_Y).set("Frequency", freqUnit, frequencyAxis[0],
+        result.getAxisDescription(DIM_Y).set(freqName, freqUnit, frequencyAxis[0],
                 frequencyAxis[frequencyAxis.length - 1]);
-        result.getAxisDescription(DIM_Z).set("Magnitude", input.getAxisDescription(DIM_Y).getUnit(),
-                amplitudeMin, amplitudeMax);
-        LOGGER.atInfo().addArgument(result).log("result of real sfft: {}");
+        result.getAxisDescription(DIM_Z).set("Magnitude", input.getAxisDescription(DIM_Y).getUnit(), amplitudeMin,
+                amplitudeMax);
+        LOGGER.atInfo().addArgument(result).log("result of real STFT: {}");
         return result;
     }
 
