@@ -197,6 +197,10 @@ public final class DataSetMath { // NOPMD - nomen est omen
         return mathFunction(function, 0.0, MathOp.DB);
     }
 
+    public static DataSet inversedbFunction(final DataSet function) {
+        return mathFunction(function, 0.0, MathOp.INV_DB);
+    }
+
     public static DataSet dbFunction(final DataSet function1, final DataSet function2) {
         return mathFunction(function1, function2, MathOp.DB);
     }
@@ -901,6 +905,14 @@ public final class DataSetMath { // NOPMD - nomen est omen
             }
             return new DoubleErrorDataSet(functionName, values(DIM_X, function), ArrayMath.decibel(y), eyn, eyp, ncount,
                     true);
+        case INV_DB:
+            norm = 20.0 / Math.log(10); // TODO: evaluate error propagation
+            for (int i = 0; i < eyn.length; i++) {
+                eyn[i] = 0.0;
+                eyp[i] = 0.0;
+            }
+            return new DoubleErrorDataSet(functionName, values(DIM_X, function), ArrayMath.inverseDecibel(y), eyn, eyp, ncount,
+                    true);
         default:
             // return copy if nothing else matches
             return new DoubleErrorDataSet(functionName, values(DIM_X, function), values(DIM_Y, function),
@@ -1076,7 +1088,8 @@ public final class DataSetMath { // NOPMD - nomen est omen
         SQR("SQR"),
         SQRT("SQRT"),
         LOG10("Log10"),
-        DB("dB");
+        DB("dB"),
+        INV_DB("dB^{-1}");
 
         private String tag;
 
