@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Tests DoubleCircularBuffer
- * 
+ *
  * @author rstein
  */
 public class DoubleCircularBufferTests {
@@ -154,7 +154,6 @@ public class DoubleCircularBufferTests {
     /**
      * meant for testing/illustrating usage (old main routine)
      *
-     * @param args the command line arguments
      */
     @Test
     public void testMainUsage() {
@@ -178,7 +177,7 @@ public class DoubleCircularBufferTests {
         }
         buffer2.put(input, fillBufferLength);
         buffer2.get(output, 10);
-        
+
         if (LOGGER.isDebugEnabled()) {
             LOGGER.atDebug().log("demo print-out");
             for (int i = 0; i < 30; i++) {
