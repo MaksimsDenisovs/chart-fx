@@ -33,7 +33,7 @@ import de.gsi.chart.ui.css.StylishDoubleProperty;
  * <ul>
  * <li>the number of grid and label divisions is kept (by convention) always at 10
  * <li>the zero is kept at the same relative screen position and min/max ranges are adjusted accordingly
- * <li>the default tick-unit ranges are <1.0, 2.0, 5.0> ({@link #DEFAULT_MULTIPLIERS1}) but can be changed to half steps
+ * <li>the default tick-unit ranges are &lt;1.0, 2.0, 5.0&gt; ({@link #DEFAULT_MULTIPLIERS1}) but can be changed to half steps
  * (ie. using {@link #DEFAULT_MULTIPLIERS2})
  * </ul>
  *
@@ -193,14 +193,14 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
     }
 
     /**
-     * The relative zero centre position (N.B. clamped to [0.0,1.0]) w.r.t. the axis length
+     * @param value the relative zero centre position (N.B. clamped to [0.0,1.0]) w.r.t. the axis length
      */
     public void setAxisZeroPosition(final double value) {
         centerAxisZeroPositionProperty().set(value);
     }
 
     /**
-     * The relative centre axis value (commonly '0')
+     * @param value the relative centre axis value (commonly '0')
      */
     public void setAxisZeroValue(final double value) {
         axisZeroValueProperty().set(value);
