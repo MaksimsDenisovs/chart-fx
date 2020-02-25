@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import de.gsi.dataset.DataSet;
+import de.gsi.dataset.DataSetError;
 import de.gsi.dataset.event.AddedDataEvent;
 import de.gsi.dataset.event.EventListener;
 import de.gsi.dataset.event.EventRateLimiter;
@@ -15,7 +16,7 @@ import de.gsi.dataset.event.EventRateLimiter.UpdateStrategy;
 import de.gsi.dataset.event.RemovedDataEvent;
 import de.gsi.dataset.event.UpdateEvent;
 import de.gsi.dataset.event.UpdatedDataEvent;
-import de.gsi.dataset.spi.DoubleDataSet;
+import de.gsi.dataset.spi.DoubleErrorDataSet;
 
 /**
  * DataSet that automatically transforms source DataSet accordance to DataSetFunction or DataSetValueFunction
@@ -24,7 +25,7 @@ import de.gsi.dataset.spi.DoubleDataSet;
  *
  * @author rstein
  */
-public class MathDataSet extends DoubleDataSet {
+public class MathDataSet extends DoubleErrorDataSet {
     private static final long serialVersionUID = -4978160822533565009L;
     private static final long DEFAULT_UPDATE_LIMIT = 40;
     private final transient EventListener eventListener;
@@ -54,13 +55,13 @@ public class MathDataSet extends DoubleDataSet {
         this(transformName, null, dataSetsFunction, null, updateRateLimit, updateStrategy, sources);
     }
 
+    public MathDataSet(final String transformName, DataSetValueFunction dataSetValueFunction, final DataSet source) {
+        this(transformName, null, null, dataSetValueFunction, DEFAULT_UPDATE_LIMIT, INSTANTANEOUS_RATE, source);
+    }
+
     public MathDataSet(final String transformName, final DataSetValueFunction dataSetValueFunction,
             final long updateRateLimit, final UpdateStrategy updateStrategy, final DataSet source) {
         this(transformName, null, null, dataSetValueFunction, updateRateLimit, updateStrategy, source);
-    }
-
-    public MathDataSet(final String transformName, DataSetValueFunction dataSetValueFunction, final DataSet source) {
-        this(transformName, null, null, dataSetValueFunction, DEFAULT_UPDATE_LIMIT, INSTANTANEOUS_RATE, source);
     }
 
     protected MathDataSet(final String transformName, DataSetFunction dataSetFunction,
@@ -112,6 +113,35 @@ public class MathDataSet extends DoubleDataSet {
         sourceDataSets.forEach(srcDataSet -> srcDataSet.addListener(eventListener));
     }
 
+    private void handleDataSetValueFunctionInterface() {
+        final DataSet dataSet = sourceDataSets.get(0);
+        final int length = dataSet.getDataCount();
+        final double[] xSourceVector = dataSet.getValues(DIM_X);
+        final double[] ySourceVector = dataSet.getValues(DIM_Y);
+        final double[] ySourceErrorPos;
+        final double[] ySourceErrorNeg;
+        if (dataSet instanceof DataSetError) {
+            DataSetError dsError = (DataSetError)dataSet;
+            ySourceErrorPos = dsError.getErrorsPositive(DIM_Y);
+            ySourceErrorNeg = dsError.getErrorsNegative(DIM_Y);
+        } else {
+            ySourceErrorPos = new double[length];
+            ySourceErrorNeg = ySourceErrorPos;
+        }
+        if (this.getCapacity() < length) {
+            final int amount = length - this.getCapacity();
+            this.increaseCapacity(amount);
+        }
+        final double[] xDestVector = this.getValues(DIM_X);
+        final double[] yDestVector = this.getValues(DIM_Y);
+
+        // copy x-array values
+        System.arraycopy(xSourceVector, 0, xDestVector, 0, length);
+        // operation is in place using the y-array values of 'this'
+        dataSetValueFunction.transform(ySourceVector, yDestVector, length);
+        this.set(xDestVector, yDestVector, ySourceErrorNeg, ySourceErrorPos, length, false); // N.B zero copy re-use of existing array
+    }
+
     protected void handle(UpdateEvent event) {
         boolean isKnownEvent = event instanceof AddedDataEvent || event instanceof RemovedDataEvent
                 || event instanceof UpdatedDataEvent;
@@ -122,16 +152,12 @@ public class MathDataSet extends DoubleDataSet {
             if (dataSetFunction != null) {
                 set(dataSetFunction.transform(sourceDataSets.get(0)));
             } else if (dataSetsFunction != null) {
-                set(dataSetsFunction.transform(sourceDataSets));
+                dataSetsFunction.transform(sourceDataSets, this);
             } else {
                 if (sourceDataSets.isEmpty()) {
                     return;
                 }
-                final DataSet dataSet = sourceDataSets.get(0);
-                final double[] xSourceVector = dataSet.getValues(DIM_X);
-                final double[] ySourceVector = dataSet.getValues(DIM_Y);
-                final int length = dataSet.getDataCount();
-                this.set(xSourceVector, dataSetValueFunction.transform(ySourceVector, length), length, true);
+                handleDataSetValueFunctionInterface();
             }
 
             this.setName(getCompositeDataSetName(transformName, sourceDataSets.toArray(new DataSet[0])));
@@ -147,34 +173,34 @@ public class MathDataSet extends DoubleDataSet {
     }
 
     /**
-     * simple DataSet transform function defintion for single input DataSets
+     * simple DataSet transform function definition for single input DataSets
      *
      * @author rstein
      */
     public interface DataSetFunction {
 
-        DataSet transform(final DataSet inputDataSet);
+        DataSet transform(final DataSet input);
 
     }
 
     /**
-     * simple DataSet transform function defintion for multiple input DataSets
+     * simple DataSet transform function definition for multiple input DataSets
      *
      * @author rstein
      */
     public interface DataSetsFunction {
 
-        DataSet transform(final List<DataSet> inputDataSet);
+        void transform(final List<DataSet> inputDataSet, final MathDataSet outputDataSet);
 
     }
 
     /**
-     * simple DataSet transform function defintion, only the y value is being transformed
+     * simple DataSet transform function definition, only the y value is being transformed, the x-axis is taken from the source DataSet
      *
      * @author rstein
      */
     public interface DataSetValueFunction {
 
-        double[] transform(final double[] inputDataSet, final int length);
+        void transform(final double[] inputY, final double[] outputY, final int length);
     }
 }

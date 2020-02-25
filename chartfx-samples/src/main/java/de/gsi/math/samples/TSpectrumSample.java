@@ -2,6 +2,7 @@ package de.gsi.math.samples;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -10,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import de.gsi.chart.Chart;
 import de.gsi.chart.XYChart;
 import de.gsi.chart.axes.spi.DefaultNumericAxis;
+import de.gsi.chart.plugins.EditAxis;
+import de.gsi.chart.plugins.TableViewer;
 import de.gsi.chart.plugins.Zoomer;
 import de.gsi.chart.renderer.LineStyle;
 import de.gsi.chart.renderer.spi.ErrorDataSetRenderer;
@@ -21,7 +24,6 @@ import de.gsi.dataset.spi.utils.DoublePoint;
 import de.gsi.math.ArrayMath;
 import de.gsi.math.DataSetMath;
 import de.gsi.math.MathDataSet;
-import de.gsi.math.spectra.SpectrumTools;
 import de.gsi.math.spectra.TSpectrum;
 import de.gsi.math.spectra.TSpectrum.Direction;
 import de.gsi.math.spectra.TSpectrum.FilterOrder;
@@ -56,12 +58,9 @@ public class TSpectrumSample extends Application {
     private ErrorDataSetRenderer peakRenderer;
 
     private final Spinner<Integer> nIterations = new Spinner<>(1, 100, 10);
-    private final ComboBox<Direction> cbxDirection = new ComboBox<>(
-            FXCollections.observableArrayList(Direction.values()));
-    private final ComboBox<FilterOrder> cbxFilterOrder = new ComboBox<>(
-            FXCollections.observableArrayList(FilterOrder.values()));
-    private final ComboBox<SmoothWindow> cbxSmoothWindow = new ComboBox<>(
-            FXCollections.observableArrayList(SmoothWindow.values()));
+    private final ComboBox<Direction> cbxDirection = new ComboBox<>(FXCollections.observableArrayList(Direction.values()));
+    private final ComboBox<FilterOrder> cbxFilterOrder = new ComboBox<>(FXCollections.observableArrayList(FilterOrder.values()));
+    private final ComboBox<SmoothWindow> cbxSmoothWindow = new ComboBox<>(FXCollections.observableArrayList(SmoothWindow.values()));
 
     private final CheckBox cbCompton = new CheckBox();
     private final CheckBox cbMarkov = new CheckBox();
@@ -86,14 +85,13 @@ public class TSpectrumSample extends Application {
         cbxSmoothWindow.getSelectionModel().select(SmoothWindow.SMOOTHING_WIDTH15);
         cbxSmoothWindow.setOnAction(evt -> triggerDataSetUpdate());
         cbCompton.setOnAction(evt -> triggerDataSetUpdate());
-        toolBarBackground.getItems().addAll(new Label("background:"), new Label("nIterations: "), nIterations,
-                cbxDirection, cbxFilterOrder, cbxSmoothWindow, new Label("Compton:"), cbCompton);
+        toolBarBackground.getItems().addAll(new Label("background:"), new Label("nIterations: "), nIterations, cbxDirection, cbxFilterOrder, cbxSmoothWindow, new Label("Compton:"),
+                cbCompton);
 
         ToolBar toolBarMarkov = new ToolBar();
         spAverageMarkov.valueProperty().addListener((ch, o, n) -> triggerDataSetUpdate());
         spAverageMarkov.setPrefWidth(70);
-        toolBarMarkov.getItems().addAll(new Label("Markov background:"), new Label("avg-width [bins: "),
-                spAverageMarkov);
+        toolBarMarkov.getItems().addAll(new Label("Markov background:"), new Label("avg-width [bins: "), spAverageMarkov);
 
         ToolBar toolBarSearch = new ToolBar();
         spSigma.valueProperty().addListener((ch, o, n) -> triggerDataSetUpdate());
@@ -106,9 +104,8 @@ public class TSpectrumSample extends Application {
         cbBackground.setOnAction(evt -> triggerDataSetUpdate());
         spAverageSearch.valueProperty().addListener((ch, o, n) -> triggerDataSetUpdate());
         spAverageSearch.setPrefWidth(70);
-        toolBarSearch.getItems().addAll(new Label("peak search: "), new Label("sigma [bins]: "), spSigma,
-                new Label("threshold [%]: "), spThreshold, new Label("Markov?:"), cbMarkov, new Label("subtract bg: "),
-                cbBackground, new Label("avg [bins]:"), spAverageSearch);
+        toolBarSearch.getItems().addAll(new Label("peak search: "), new Label("sigma [bins]: "), spSigma, new Label("threshold [%]: "), spThreshold, new Label("Markov?:"),
+                cbMarkov, new Label("subtract bg: "), cbBackground, new Label("avg [bins]:"), spAverageSearch);
 
         root.getChildren().addAll(toolBarBackground, toolBarMarkov, toolBarSearch);
         return root;
@@ -120,6 +117,8 @@ public class TSpectrumSample extends Application {
         yAxis.setForceZeroInRange(true);
         final XYChart chart = new XYChart(xAxis, yAxis);
         chart.getPlugins().add(new Zoomer());
+        chart.getPlugins().add(new EditAxis());
+        chart.getPlugins().add(new TableViewer());
         chart.getRenderers().get(0).getDatasets().add(demoDataSet);
         backgroundRenderer = new ErrorDataSetRenderer();
         peakRenderer = new ErrorDataSetRenderer();
@@ -196,21 +195,20 @@ public class TSpectrumSample extends Application {
         root.setTop(getTopToolBar());
         root.setBottom(getBottomControls());
 
-        MathDataSet dsBackground = new MathDataSet("background", (final double[] rawData, final int length) -> {
+        MathDataSet dsBackground = new MathDataSet("background", (final double[] input, final double[] output, final int length) -> {
             LOGGER.atInfo().log("trigger background update");
             final int nIter = nIterations.getValue().intValue();
             final Direction direction = cbxDirection.getSelectionModel().getSelectedItem();
             final FilterOrder filterOrder = cbxFilterOrder.getSelectionModel().getSelectedItem();
             final SmoothWindow smoothing = cbxSmoothWindow.getSelectionModel().getSelectedItem();
             boolean compton = cbCompton.isSelected();
-            return TSpectrum.background(rawData, null, length, nIter, direction, filterOrder, smoothing, compton);
+            TSpectrum.background(input, output, length, nIter, direction, filterOrder, smoothing, compton);
         }, demoDataSet);
         backgroundRenderer.getDatasets().addAll(dsBackground);
 
-        MathDataSet dsMarkov = new MathDataSet("bgMarkov", (final double[] rawData, final int length) -> {
+        MathDataSet dsMarkov = new MathDataSet("bgMarkov", (final double[] input, final double[] output, final int length) -> {
             final int nAverage = spAverageMarkov.getValue().intValue();
-            return ArrayMath
-                    .decibelInPlace(TSpectrum.smoothMarkov(ArrayMath.inverseDecibel(rawData), null, length, nAverage));
+            ArrayMath.decibelInPlace(TSpectrum.smoothMarkov(ArrayMath.inverseDecibel(input), output, length, nAverage));
         }, demoDataSet);
         backgroundRenderer.getDatasets().addAll(dsMarkov);
 
@@ -230,15 +228,13 @@ public class TSpectrumSample extends Application {
             final boolean markov = cbMarkov.isSelected();
             final boolean backgroundRemove = cbBackground.isSelected();
 
-            final List<DoublePoint> peaks = TSpectrum.search(freq, ArrayMath.inverseDecibel(rawData), destVector,
-                    dataSet.getDataCount(), 100, sigma, threshold, //
+            final List<DoublePoint> peaks = TSpectrum.search(freq, ArrayMath.inverseDecibel(rawData), destVector, dataSet.getDataCount(), 100, sigma, threshold, //
                     backgroundRemove, nIter, markov, nAverage);
 
             dsBgSearch.set(freq, ArrayMath.decibel(destVector), dataSet.getDataCount(), true);
 
             DoubleDataSet retVal = new DoubleDataSet("peaks", 10);
-            LOGGER.atInfo().addArgument(peaks.size()).addArgument(dataSet.getDataCount())
-                    .log("found {} peaks in spectrum of length {}");
+            LOGGER.atInfo().addArgument(peaks.size()).addArgument(dataSet.getDataCount()).log("found {} peaks in spectrum of length {}");
             for (DoublePoint point : peaks) {
                 retVal.add(point.getX(), 20 * Math.log10(point.getY()));
                 LOGGER.atInfo().addArgument(point.getX()).addArgument(point.getY()).log("found peak at ({},{})");
@@ -295,8 +291,7 @@ public class TSpectrumSample extends Application {
     }
 
     protected static DoubleDataSet readDemoData(final String fileName) {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(TSpectrumSample.class.getResourceAsStream(fileName)))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(TSpectrumSample.class.getResourceAsStream(fileName)))) {
             String line = reader.readLine();
             final int nDim = line == null ? 0 : Integer.parseInt(line);
 
