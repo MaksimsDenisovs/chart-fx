@@ -7,6 +7,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
@@ -50,10 +51,8 @@ public class OscilloscopeAxisSample extends Application {
     private static final int MIN_PIXEL_DISTANCE = 1;
     private static final double AXIS_CENTRE_VALUE = 0.0;
     private static final double AXIS_CENTRE_POSITION = 0.2;
-    public final LimitedIndexedTreeDataSet rollingBufferDipoleCurrent = new LimitedIndexedTreeDataSet(
-            "dipole current", RollingBufferSample.BUFFER_CAPACITY);
-    public final LimitedIndexedTreeDataSet rollingBufferBeamIntensity = new LimitedIndexedTreeDataSet(
-            "beam intensity", RollingBufferSample.BUFFER_CAPACITY);
+    public final LimitedIndexedTreeDataSet rollingBufferDipoleCurrent = new LimitedIndexedTreeDataSet("dipole current", RollingBufferSample.BUFFER_CAPACITY);
+    public final LimitedIndexedTreeDataSet rollingBufferBeamIntensity = new LimitedIndexedTreeDataSet("beam intensity", RollingBufferSample.BUFFER_CAPACITY);
     public final XYChart chartOscilloscopeAxis = getChart(false);
     public final XYChart chartDefaultAxis = getChart(true);
     private Timer timer;
@@ -69,8 +68,7 @@ public class OscilloscopeAxisSample extends Application {
             for (int n = RollingBufferSample.N_SAMPLES; n > 0; n--) {
                 final double t = now - n * RollingBufferSample.UPDATE_PERIOD / 1000.0;
                 final double y = 25 * RollingBufferSample.rampFunctionDipoleCurrent(t);
-                final double y2 = AXIS_CENTRE_VALUE + 100 * Math.cos(2.0 * Math.PI * 0.01 * t)
-                        * RollingBufferSample.rampFunctionBeamIntensity(t);
+                final double y2 = AXIS_CENTRE_VALUE + 100 * Math.cos(2.0 * Math.PI * 0.01 * t) * RollingBufferSample.rampFunctionBeamIntensity(t);
                 final double ey = 1;
                 rollingBufferDipoleCurrent.add(t, y, ey, ey);
                 rollingBufferBeamIntensity.add(t, y2, ey, ey);
@@ -81,8 +79,7 @@ public class OscilloscopeAxisSample extends Application {
             rollingBufferDipoleCurrent.autoNotification().set(false);
             final double t = now;
             final double y = 25 * RollingBufferSample.rampFunctionDipoleCurrent(t);
-            final double y2 = AXIS_CENTRE_VALUE + 100 * Math.cos(2.0 * Math.PI * 0.01 * t)
-                    * RollingBufferSample.rampFunctionBeamIntensity(t);
+            final double y2 = AXIS_CENTRE_VALUE + 100 * Math.cos(2.0 * Math.PI * 0.01 * t) * RollingBufferSample.rampFunctionBeamIntensity(t);
             final double ey = 1;
             rollingBufferDipoleCurrent.add(t, y, ey, ey);
             rollingBufferBeamIntensity.add(t, y2, ey, ey);
@@ -133,8 +130,7 @@ public class OscilloscopeAxisSample extends Application {
                 if (!(axis instanceof OscilloscopeAxis)) {
                     continue;
                 }
-                ((OscilloscopeAxis) axis)
-                        .setTickUnitSupplier(new DefaultTickUnitSupplier(OscilloscopeAxis.DEFAULT_MULTIPLIERS1));
+                ((OscilloscopeAxis) axis).setTickUnitSupplier(new DefaultTickUnitSupplier(OscilloscopeAxis.DEFAULT_MULTIPLIERS1));
                 axis.requestAxisLayout();
             }
         });
@@ -146,8 +142,7 @@ public class OscilloscopeAxisSample extends Application {
                 if (!(axis instanceof OscilloscopeAxis)) {
                     continue;
                 }
-                ((OscilloscopeAxis) axis)
-                        .setTickUnitSupplier(new DefaultTickUnitSupplier(OscilloscopeAxis.DEFAULT_MULTIPLIERS2));
+                ((OscilloscopeAxis) axis).setTickUnitSupplier(new DefaultTickUnitSupplier(OscilloscopeAxis.DEFAULT_MULTIPLIERS2));
                 axis.requestAxisLayout();
             }
         });
@@ -165,6 +160,38 @@ public class OscilloscopeAxisSample extends Application {
                     continue;
                 }
                 ((OscilloscopeAxis) axis).setAxisZeroPosition(zeroPosition);
+                chartOscilloscopeAxis.requestLayout();
+            }
+        });
+
+        final CheckBox forceMinRange = new CheckBox("force min. range");
+        forceMinRange.selectedProperty().addListener((ch, o, n) -> {
+            for (Axis axis : chartOscilloscopeAxis.getAxes()) {
+                if (!(axis instanceof OscilloscopeAxis)) {
+                    continue;
+                }
+                if (Boolean.TRUE.equals(n)) {
+                    ((OscilloscopeAxis) axis).getMinRange().set(-4000, 0);
+                } else {
+                    ((OscilloscopeAxis) axis).getMinRange().clear();
+                }
+                axis.forceRedraw();
+                chartOscilloscopeAxis.requestLayout();
+            }
+        });
+
+        final CheckBox forceMaxRange = new CheckBox("force max. range");
+        forceMaxRange.selectedProperty().addListener((ch, o, n) -> {
+            for (Axis axis : chartOscilloscopeAxis.getAxes()) {
+                if (!(axis instanceof OscilloscopeAxis)) {
+                    continue;
+                }
+                if (Boolean.TRUE.equals(n)) {
+                    ((OscilloscopeAxis) axis).getMaxRange().set(0, 1000);
+                } else {
+                    ((OscilloscopeAxis) axis).getMaxRange().clear();
+                }
+                axis.forceRedraw();
                 chartOscilloscopeAxis.requestLayout();
             }
         });
@@ -196,9 +223,8 @@ public class OscilloscopeAxisSample extends Application {
             cpuLoadSystem.setText(String.format("%-11s: %4s %s", "System -CPU", cpuSystem, "%"));
         });
 
-        return new ToolBar(startTimer, new Label(" tick multipliers: "), tickRange1, tickRange2,
-                new Label(" zero axis position: "), centreSlider, spacer, new VBox(fxFPS, chartFPS),
-                new VBox(cpuLoadProcess, cpuLoadSystem));
+        return new ToolBar(startTimer, new Label(" tick multipliers: "), tickRange1, tickRange2, new Label(" zero axis position: "), centreSlider, forceMinRange, forceMaxRange,
+                spacer, new VBox(fxFPS, chartFPS), new VBox(cpuLoadProcess, cpuLoadSystem));
     }
 
     private TimerTask getTask() {
@@ -251,14 +277,12 @@ public class OscilloscopeAxisSample extends Application {
         chart.legendVisibleProperty().set(false);
         chart.getYAxis().setName(rollingBufferBeamIntensity.getName());
         final ErrorDataSetRenderer beamIntensityRenderer = (ErrorDataSetRenderer) chart.getRenderers().get(0);
-        ((DefaultDataReducer) beamIntensityRenderer.getRendererDataReducer())
-                .setMinPointPixelDistance(MIN_PIXEL_DISTANCE);
+        ((DefaultDataReducer) beamIntensityRenderer.getRendererDataReducer()).setMinPointPixelDistance(MIN_PIXEL_DISTANCE);
         beamIntensityRenderer.setDrawMarker(false);
         beamIntensityRenderer.getDatasets().add(rollingBufferBeamIntensity);
 
         final ErrorDataSetRenderer dipoleCurrentRenderer = new ErrorDataSetRenderer();
-        ((DefaultDataReducer) dipoleCurrentRenderer.getRendererDataReducer())
-                .setMinPointPixelDistance(MIN_PIXEL_DISTANCE);
+        ((DefaultDataReducer) dipoleCurrentRenderer.getRendererDataReducer()).setMinPointPixelDistance(MIN_PIXEL_DISTANCE);
         dipoleCurrentRenderer.setDrawMarker(false);
         dipoleCurrentRenderer.getAxes().add(yAxis2);
         dipoleCurrentRenderer.getDatasets().add(rollingBufferDipoleCurrent);

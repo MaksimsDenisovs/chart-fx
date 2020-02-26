@@ -1,5 +1,6 @@
 package de.gsi.chart.axes.spi;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -51,6 +52,25 @@ public class OscilloscopeAxisTests {
     }
 
     @Test
+    public void computeRangeTests() {
+        final OscilloscopeAxis axis = new OscilloscopeAxis("axis title", -1.0, 1.0, 0.1);
+
+        final AxisRange axisRange1 = axis.computeRange(Double.NaN, Double.NaN, 1000, 0.0);
+        assertEquals(-1.0, axisRange1.getMin());
+        assertEquals(+1.0, axisRange1.getMax());
+
+        axis.add(2.0);
+        final AxisRange axisRange2 = axis.computeRange(Double.NaN, Double.NaN, 1000, 0.0);
+        assertEquals(-2.5, axisRange2.getMin());
+        assertEquals(+2.5, axisRange2.getMax());
+
+        axis.add(-2.0);
+        final AxisRange axisRange3 = axis.computeRange(Double.NaN, Double.NaN, 1000, 0.0);
+        assertEquals(-2.5, axisRange3.getMin());
+        assertEquals(+2.5, axisRange3.getMax());
+    }
+
+    @Test
     public void constructorTests() {
         assertDoesNotThrow(() -> new OscilloscopeAxis("axis title"));
 
@@ -77,6 +97,36 @@ public class OscilloscopeAxisTests {
         final double mOne = axis.getDisplayPosition(axis.getValueForDisplay(-1.0));
         assertEquals(-1.0, mOne);
 
+    }
+
+    @Test
+    public void minMaxRangeTests() {
+        final OscilloscopeAxis axis = new OscilloscopeAxis("axis title", 0.0, 1.0, 0.1);
+
+        assertNotNull(axis.getMinRange());
+        assertNotNull(axis.getMaxRange());
+
+        assertFalse(axis.getMinRange().isDefined());
+        assertFalse(axis.getMaxRange().isDefined());
+
+        axis.getMinRange().set(-2.0, 2.0);
+        assertEquals(-2.0, axis.getClampedRange().getMin());
+        assertEquals(+2.0, axis.getClampedRange().getMax());
+
+        // second round shouldn't require a recompute of clamped range
+        assertEquals(-2.0, axis.getClampedRange().getMin());
+        assertEquals(+2.0, axis.getClampedRange().getMax());
+
+        axis.getMinRange().clear();
+        axis.recomputeClamedRange();
+        // should be the original min/max range again
+        assertEquals(0.0, axis.getClampedRange().getMin());
+        assertEquals(1.0, axis.getClampedRange().getMax());
+
+        axis.getMaxRange().set(0.1, 0.9);
+        // clamp to smaller max range
+        assertEquals(0.1, axis.getClampedRange().getMin());
+        assertEquals(0.9, axis.getClampedRange().getMax());
     }
 
     @Test

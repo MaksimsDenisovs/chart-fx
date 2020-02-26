@@ -24,6 +24,7 @@ import de.gsi.chart.axes.TickUnitSupplier;
 import de.gsi.chart.axes.spi.format.DefaultTickUnitSupplier;
 import de.gsi.chart.axes.spi.transforms.DefaultAxisTransform;
 import de.gsi.chart.ui.css.StylishDoubleProperty;
+import de.gsi.dataset.spi.DataRange;
 
 /**
  * Implements an Oscilloscope-like axis with a default of 10 divisions (tick marks) and fixed zero (or offset) screen
@@ -33,8 +34,11 @@ import de.gsi.chart.ui.css.StylishDoubleProperty;
  * <ul>
  * <li>the number of grid and label divisions is kept (by convention) always at 10
  * <li>the zero is kept at the same relative screen position and min/max ranges are adjusted accordingly
- * <li>the default tick-unit ranges are &lt;1.0, 2.0, 5.0&gt; ({@link #DEFAULT_MULTIPLIERS1}) but can be changed to half steps
+ * <li>the default tick-unit ranges are &lt;1.0, 2.0, 5.0&gt; ({@link #DEFAULT_MULTIPLIERS1}) but can be changed to half
+ * steps
  * (ie. using {@link #DEFAULT_MULTIPLIERS2})
+ * <li>it provides a {@link #getMinRange()} and {@link #getMaxRange()} feature to force a minimum and/or maximum axis
+ * range (N.B. to disable this, simply 'clear()' these ranges).
  * </ul>
  *
  * @author rstein
@@ -43,21 +47,22 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
     private static final Logger LOGGER = LoggerFactory.getLogger(OscilloscopeAxis.class);
     private static final int DEFAULT_RANGE_LENGTH = 1; // default min min length
     private static final int TICK_COUNT = 10; // by convention
-    public static final SortedSet<Number> DEFAULT_MULTIPLIERS1 = Collections
-            .unmodifiableSortedSet(new TreeSet<>(Arrays.asList(1.0, 2.0, 5.0)));
-    public static final SortedSet<Number> DEFAULT_MULTIPLIERS2 = Collections.unmodifiableSortedSet(new TreeSet<>(
-            Arrays.asList(1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5)));
+    public static final SortedSet<Number> DEFAULT_MULTIPLIERS1 = Collections.unmodifiableSortedSet(new TreeSet<>(Arrays.asList(1.0, 2.0, 5.0)));
+    public static final SortedSet<Number> DEFAULT_MULTIPLIERS2 = Collections
+            .unmodifiableSortedSet(new TreeSet<>(Arrays.asList(1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5)));
     private final DefaultAxisTransform axisTransform = new DefaultAxisTransform(this);
     private TickUnitSupplier tickUnitSupplier = new DefaultTickUnitSupplier(DEFAULT_MULTIPLIERS1);
-    private final DoubleProperty axisZeroPosition = new StylishDoubleProperty(StyleableProperties.CENTER_AXIS_POSITION,
-            this, "centerAxisPosition", 0.5, this::requestAxisLayout) {
+    private final DataRange clampedRange = new DataRange();
+
+    private final DataRange minRange = new DataRange();
+    private final DataRange maxRange = new DataRange();
+    private final DoubleProperty axisZeroPosition = new StylishDoubleProperty(StyleableProperties.CENTER_AXIS_POSITION, this, "centerAxisPosition", 0.5, this::requestAxisLayout) {
         @Override
         public void set(final double value) {
             super.set(Math.max(0.0, Math.min(value, 1.0)));
         }
     };
-    private final DoubleProperty axisZeroValue = new StylishDoubleProperty(StyleableProperties.CENTER_AXIS_VALUE, this,
-            "axisZeroValue", 0.0, this::requestAxisLayout);
+    private final DoubleProperty axisZeroValue = new StylishDoubleProperty(StyleableProperties.CENTER_AXIS_VALUE, this, "axisZeroValue", 0.0, this::requestAxisLayout);
     private final Cache cache = new Cache();
     private double offset;
     protected boolean isUpdating = true;
@@ -80,8 +85,7 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
      * @param upperBound the {@link #maxProperty() upper bound} of the axis
      * @param tickUnit the tick unit, i.e. space between tick marks
      */
-    public OscilloscopeAxis(final String axisLabel, final double lowerBound, final double upperBound,
-            final double tickUnit) {
+    public OscilloscopeAxis(final String axisLabel, final double lowerBound, final double upperBound, final double tickUnit) {
         super(lowerBound, upperBound);
         setName(axisLabel);
         if (lowerBound >= upperBound) {
@@ -105,15 +109,6 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
     }
 
     /**
-     * The relative zero centre position (N.B. clamped to [0.0,1.0]) w.r.t. the axis length
-     *
-     * @return the axisZeroPosition property
-     */
-    public DoubleProperty centerAxisZeroPositionProperty() {
-        return axisZeroPosition;
-    }
-
-    /**
      * The relative centre axis value (commonly '0')
      *
      * @return the axisZeroValue property
@@ -122,20 +117,31 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
         return axisZeroValue;
     }
 
+    /**
+     * The relative zero centre position (N.B. clamped to [0.0,1.0]) w.r.t. the axis length
+     *
+     * @return the axisZeroPosition property
+     */
+    public DoubleProperty centerAxisZeroPositionProperty() {
+        return axisZeroPosition;
+    }
+
     @Override
     public double computePreferredTickUnit(double axisLength) {
+        final DataRange clamped = getClampedRange();
+
         final double centre = getAxisZeroValue();
         final double relCentre = getAxisZeroPosition();
         final double rawTickUnit;
         if (relCentre == 0.0) {
-            rawTickUnit = getEffectiveRange(centre, getMax()) / TICK_COUNT; // top half
+            rawTickUnit = getEffectiveRange(centre, clamped.getMax()) / TICK_COUNT; // top half
         } else if (relCentre == 1.0) {
-            rawTickUnit = getEffectiveRange(getMin(), centre) / TICK_COUNT; // bottom half
+            rawTickUnit = getEffectiveRange(clamped.getMin(), centre) / TICK_COUNT; // bottom half
         } else {
             final double relTickCount1 = relCentre * TICK_COUNT; // bottom half
             final double relTickCount2 = (1.0 - relCentre) * TICK_COUNT; // top half
-            final double rawTickUnit1 = getEffectiveRange(getMin(), centre) / relTickCount1;
-            final double rawTickUnit2 = getEffectiveRange(centre, getMax()) / relTickCount2;
+            final double rawTickUnit1 = getEffectiveRange(clamped.getMin(), centre) / relTickCount1;
+            final double rawTickUnit2 = getEffectiveRange(centre, clamped.getMax()) / relTickCount2;
             rawTickUnit = rawTickUnit1 > rawTickUnit2 ? rawTickUnit1 : rawTickUnit2;
         }
 
@@ -167,9 +173,33 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
         return axisZeroValueProperty().get();
     }
 
+    /**
+     * @return the range that is clamped to limits defined by {@link #getMinRange()} and {@link #getMaxRange()}.
+     */
+    public DataRange getClampedRange() {
+        recomputeClamedRange();
+        return clampedRange;
+    }
+
     @Override
     public LogAxisType getLogAxisType() {
         return LogAxisType.LINEAR_SCALE;
+    }
+
+    /**
+     * @return the maximum range, axis range will never be smaller than this.
+     *         To disable this feature, simply use {@code getMaxRange().clear()}.
+     */
+    public DataRange getMaxRange() {
+        return maxRange;
+    }
+
+    /**
+     * @return the minimum range, axis range will never be smaller than this.
+     *         To disable this feature, simply use {@code getMinRange().clear()}.
+     */
+    public DataRange getMinRange() {
+        return minRange;
     }
 
     /**
@@ -269,8 +299,7 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
     }
 
     @Override
-    protected AxisRange computeRange(final double minValue, final double maxValue, final double axisLength,
-            final double labelSize) {
+    protected AxisRange computeRange(final double minValue, final double maxValue, final double axisLength, final double labelSize) {
         final double tickUnitRounded = computePreferredTickUnit(axisLength);
 
         // by definition oscilloscope/SA/VNA have fixed 10 divisions
@@ -284,6 +313,23 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
         final double newScale = calculateNewScale(axisLength, minRounded, maxRounded);
 
         return new AxisRange(minRounded, maxRounded, axisLength, newScale, tickUnitRounded);
+    }
+
+    /**
+     * reinitialises clamped range based on {@link #getMin()}, {@link #getMax()}, {@link #getMinRange()} and {@link #getMaxRange()}.
+     */
+    protected void recomputeClamedRange() {
+        clampedRange.set(this.getMinRange());
+        if (getMaxRange().isMaxDefined()) {
+            clampedRange.add(Math.min(getMax(), this.getMaxRange().getMax()));
+        } else {
+            clampedRange.add(getMax());
+        }
+        if (getMaxRange().isMinDefined()) {
+            clampedRange.add(Math.max(getMin(), this.getMaxRange().getMin()));
+        } else {
+            clampedRange.add(getMin());
+        }
     }
 
     @Override
@@ -307,8 +353,7 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
     }
 
     private static class StyleableProperties {
-        private static final CssMetaData<OscilloscopeAxis, Number> CENTER_AXIS_POSITION = new CssMetaData<>(
-                "-fx-centre-axis-zero-position", SizeConverter.getInstance(), 0.5) {
+        private static final CssMetaData<OscilloscopeAxis, Number> CENTER_AXIS_POSITION = new CssMetaData<>("-fx-centre-axis-zero-position", SizeConverter.getInstance(), 0.5) {
             @SuppressWarnings("unchecked")
             @Override
             public StyleableProperty<Number> getStyleableProperty(final OscilloscopeAxis n) {
@@ -321,8 +366,7 @@ public class OscilloscopeAxis extends AbstractAxis implements Axis {
             }
         };
 
-        private static final CssMetaData<OscilloscopeAxis, Number> CENTER_AXIS_VALUE = new CssMetaData<>(
-                "-fx-centre-axis-zero-value", SizeConverter.getInstance(), 0.5) {
+        private static final CssMetaData<OscilloscopeAxis, Number> CENTER_AXIS_VALUE = new CssMetaData<>("-fx-centre-axis-zero-value", SizeConverter.getInstance(), 0.5) {
             @SuppressWarnings("unchecked")
             @Override
             public StyleableProperty<Number> getStyleableProperty(final OscilloscopeAxis n) {
